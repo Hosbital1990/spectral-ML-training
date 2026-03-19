@@ -71,23 +71,47 @@ Step 4: Smart interpolation to common grid
    ↓
 Step 5: Normalize spectra
    ↓
-Step 6: Train classification model
+Step 6: Train & evaluate models (6 options available)
+   ↓
+Step 7: Compare all models (optional)
 ```
 
 ---
 
 ## Run Steps (Order Matters)
 
-Run scripts in this exact order:
+### Data preparation (required, run in order):
 
 ```bash
-python step01_dataset_review.py
-python step02_parse_pickle_file.py
-python step03_analyze_spectra.py
-python step04_interpolate_dataset.py
-python step05_normalize_dataset.py
-python step06_train_model.py
+python3 step01_dataset_review.py
+python3 step02_parse_pickle_file.py
+python3 step03_analyze_spectra.py
+python3 step04_interpolate_dataset.py
+python3 step05_normalize_dataset.py
 ```
+
+### Step 6 - Model Training (choose one or run all):
+
+Pick any single model to train:
+
+```bash
+python3 step06_train_random_forest.py      # Default baseline
+python3 step06_train_extra_trees.py        # Randomized ensemble variant
+python3 step06_train_linear_svm.py         # Linear support vector machine
+python3 step06_train_logistic_regression.py # Linear classifier
+python3 step06_train_knn.py                # K-nearest neighbors
+python3 step06_train_cnn_1d.py             # Convolutional neural network (requires TensorFlow)
+```
+
+### Step 7 - Compare All Models (optional):
+
+Run all 6 models sequentially and print a ranked comparison table:
+
+```bash
+python3 step07_compare_models.py
+```
+
+This creates a `model_run_logs/` directory containing the full output of each model.
 
 ### Required pickle files before each dependent step
 
@@ -318,16 +342,17 @@ ml_dataset_normalized.pkl
 
 ## Objective
 
-Train a classifier to predict mineral type.
+Train one or more classifiers to predict mineral type.
 
 ## Challenges
 
 * Very high number of classes (~2300)
 * Many classes have few samples
+* Need to find best-performing model architecture
 
 ## Solution
 
-### Class filtering
+### Class filtering (applied by all models)
 
 Remove classes with fewer than N samples:
 
@@ -335,44 +360,126 @@ Remove classes with fewer than N samples:
 MIN_SAMPLES_PER_CLASS = 3
 ```
 
-### Result
+### Result after filtering
 
 * Samples: 7815
 * Classes: 1274
 
 ### Train/Test split
 
-* Stratified split
+* Stratified train/test split
 * Ensures class balance
 
-## Model
+## Available Models
 
-```python
-RandomForestClassifier
+All models use the same data preparation pipeline and evaluation metrics.
+
+### 1. Random Forest (default baseline)
+
+**File:** `step06_train_random_forest.py`
+
+* 100 decision trees
+* Handles nonlinear patterns well
+* Robust to high-dimensional data
+* Expected accuracy: ~0.64
+
+### 2. Extra Trees (extremely randomized trees)
+
+**File:** `step06_train_extra_trees.py`
+
+* 300 randomized trees
+* Faster training than Random Forest
+* Often comparable or better accuracy
+
+### 3. Linear SVM (support vector machine)
+
+**File:** `step06_train_linear_svm.py`
+
+* Linear kernel for high-dimensional data
+* Good for spectral classification
+* Requires more training time
+
+### 4. Logistic Regression
+
+**File:** `step06_train_logistic_regression.py`
+
+* Linear classifier with multinomial support
+* Fast training and prediction
+* Good baseline for linear separability
+
+### 5. KNN (K-Nearest Neighbors)
+
+**File:** `step06_train_knn.py`
+
+* k=5 neighbors with distance weighting
+* Lazy learner (no explicit training)
+* Memory-intensive prediction
+
+### 6. 1D CNN (convolutional neural network)
+
+**File:** `step06_train_cnn_1d.py`
+
+* Input: 1D spectral sequences with 2 conv layers
+* Deep learning approach for spectral features
+* Requires: TensorFlow/Keras
+* Slower training but potentially higher accuracy on complex patterns
+
+## Model Comparison
+
+Run all 6 models and rank them:
+
+```bash
+python3 step07_compare_models.py
 ```
 
-## Result
+This outputs:
 
-```
-Accuracy ≈ 0.64
-```
+* Table with accuracy, runtime, and status for each model
+* Per-model full logs in `model_run_logs/`
+* Best-performing model highlighted
 
 ---
 
+## Step 7 - Model Comparison
+
+## Objective
+
+Compare all 6 model implementations on the same dataset and identify best performer.
+
+## How It Works
+
+1. Sequentially runs each of the 6 Step 6 model scripts
+2. Extracts accuracy, runtime, and error status from each
+3. Stores full output logs in `model_run_logs/`
+4. Displays ranked comparison table in terminal
+
+## Output
+
+A table showing:
+
+* Model rank by accuracy
+* Model name and status (ok/failed)
+* Achieved accuracy
+* Training + evaluation runtime
+* Log file location
+
 ## Interpretation of Results
 
-## Accuracy
+### Baseline Accuracy
 
-64% accuracy across **1274 classes** is strong for:
+~64% accuracy across **1274 classes** is strong for:
 
-* high class count
+* high class count (>1000)
 * spectral similarity between minerals
+* limited samples per class
 
-## Observations
+### Observations
 
-* Better performance on well-represented classes
-* Weak performance on rare classes
-* Class imbalance impacts macro metrics
+* Tree-based models (Random Forest, Extra Trees) typically perform well on tabular data
+* Linear models provide interpretable but potentially lower accuracy
+* Neural networks (1D CNN) may excel with sufficient training data and tuning
+* KNN is memory-intensive but can capture local patterns
+* Model performance varies based on class representation
 
 ---
 
@@ -390,20 +497,23 @@ Accuracy ≈ 0.64
 * Covers important Raman fingerprint region
 * Avoids sparse low-frequency regions
 
-## Why Random Forest?
+## Why multiple models?
 
-* Handles nonlinear patterns
-* Works well on tabular data
-* No heavy tuning required
+* No single model dominates all classification problems
+* Tree-based models handle nonlinear patterns well
+* Linear models provide interpretability
+* Deep learning scales with data quantity
+* Systematic comparison identifies optimal architecture for this spectral dataset
 
 ---
 
 ## Limitations
 
-* Many rare classes remain underrepresented
-* No baseline correction or smoothing applied
-* No deep learning models used yet
-* Spectral noise not explicitly handled
+* Many rare classes remain underrepresented (MIN_SAMPLES_PER_CLASS = 3)
+* No baseline correction or smoothing applied to raw spectra
+* 1D CNN requires significant compute and TensorFlow dependency
+* Spectral noise not explicitly modeled or handled
+* Hyperparameter tuning performed minimally (production use should optimize per-model)
 
 ---
 
@@ -411,41 +521,67 @@ Accuracy ≈ 0.64
 
 ## Data
 
-* Increase `MIN_SAMPLES_PER_CLASS`
-* Remove noisy spectra
-* Apply baseline correction
+* Increase `MIN_SAMPLES_PER_CLASS` to reduce class imbalance
+* Remove noisy spectra via SNR filtering
+* Apply baseline correction/smoothing (Savitzky-Golay, etc.)
+* Class weighting or synthetic data generation (SMOTE)
 
 ## Features
 
-* Peak extraction
-* Spectral smoothing
-* Derivative spectra
+* Peak extraction (local maxima, FWHM)
+* Spectral smoothing preprocessing
+* Derivative spectra (1st/2nd order)
+* Wavelet transform features
 
 ## Models
 
-* XGBoost
-* 1D CNN (for spectral data)
-* Transformer models
+* XGBoost (gradient boosting alternative)
+* Transformer encoder for spectral sequences
+* Ensemble voting across multiple models
+* Hyperparameter grid search or Bayesian optimization
 
 ## Evaluation
 
-* Confusion matrix
-* Top-k accuracy
-* Class grouping
+* Confusion matrix visualization
+* Top-k accuracy (top 5/10 predictions)
+* Per-class precision/recall/F1
+* Class grouping by mineral family
+* Cross-validation for robustness
 
 ---
 
 ## Final Conclusion
 
-This pipeline successfully transforms raw Raman spectroscopy data into a machine-learning-ready dataset and trains a baseline classifier.
+This pipeline successfully transforms raw Raman spectroscopy data into a machine-learning-ready dataset and compares 6 distinct model architectures.
 
-Key achievements:
+### Key Achievements
 
-* Robust data parsing and cleaning
-* Smart feature alignment via interpolation
-* Effective normalization
-* Working multi-class classifier with strong baseline performance
+* Robust data parsing and cleaning (1000s of files)
+* Smart feature alignment via interpolation (variable-length → 801-feature vectors)
+* Effective per-spectrum normalization
+* **6 working multi-class classifiers** with diverse approaches:
+  - 2 tree-based models (Random Forest, Extra Trees)
+  - 2 linear models (Logistic Regression, Linear SVM)
+  - 1 distance-based model (KNN)
+  - 1 deep learning model (1D CNN)
+* Automated benchmarking and model ranking (Step 7)
 
-The dataset is confirmed to be **trainable and suitable for further research and model improvement**.
+### Dataset Properties
+
+* Input: 9,815 raw spectra across 2,302 mineral classes
+* After filtering: 7,815 spectra across 1,274 classes
+* Feature space: 801-dimensional (400–1200 cm⁻¹ wavenumber range)
+* Train/test: stratified split with 79%/21% ratio
+
+### Next Steps for Production Use
+
+1. Run `step07_compare_models.py` to identify best model
+2. Select top-performing model script from Step 6
+3. Implement hyperparameter tuning for chosen architecture
+4. Apply data improvements (smoothing, baseline correction, class balancing)
+5. Validate on held-out test set or cross-validation
+6. Deploy or integrate into mineral classification system
+
+**The dataset is confirmed to be trainable, and the modular design enables rapid experimentation with new model architectures.**
 
 ---
