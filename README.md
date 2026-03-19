@@ -14,6 +14,46 @@ The goal is to transform raw spectral data into a **trainable machine learning d
 
 ---
 
+## Environment Setup
+
+Recommended Python version: **3.10+**
+
+### 1) Create virtual environment
+
+```bash
+python3 -m venv .venv
+```
+
+### 2) Activate virtual environment
+
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Windows (PowerShell):
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 3) Install required packages
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4) Quick check
+
+```bash
+python --version
+pip list
+```
+
+---
+
 ## Pipeline Summary
 
 ```
